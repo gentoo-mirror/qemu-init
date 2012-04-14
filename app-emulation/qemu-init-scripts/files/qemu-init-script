@@ -16,6 +16,8 @@ PIDFILE=/var/run/vm/${SVCNAME}.pid
 MONITOR=/var/run/vm/${SVCNAME}.monitor
 QTAP_FILE=/var/run/vm/${SVCNAME}.qtap
 
+ENABLE_SDL=
+
 discern_vm_binary() {
 	case "$VMTYPE" in
 		kvm)
@@ -32,6 +34,35 @@ discern_vm_binary() {
 	return 0
 }
 
+discern_foreground() {
+	if [ -n "$VNC" ]; then
+		ewarn "VNC option is going away; set FOREGROUND=vnc${VNC} instead"
+		FOREGROUND="vnc=${VNC}"
+	fi
+	case "${FOREGROUND:-none}" in
+		vnc*)
+			VNC=${VNC#*=}
+			if [ -z "$VNC" ]; then
+				eerror "FOREGROUND vnc is incorrectly set; must specify an address (:1 for example)"
+				return 1
+			fi
+			;;
+		sdl*)
+			ENABLE_SDL=${FOREGROUND#*=}
+			if [ -z "${ENABLE_SDL}" ]; then
+				eerror "FOREGROUND sdl is incorrectly set; must specify a DISPLAY address"
+				return 1
+			fi
+			;;
+		none)
+			;;
+		*)
+			eerror "Unknown FOREGROUND setting: $FOREGROUND"
+			return 1
+			;;
+	esac
+	return 0
+}
 
 DROP_USER=${DROP_USER:-nobody}
 MEMORY=${MEMORY:-512M}
@@ -73,8 +104,10 @@ sanity_check() {
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
 	fi
-	discern_vm_binary
+	discern_vm_binary || return 1
 	NIC_TYPE=${NIC_TYPE:-nat}
+
+	discern_foreground || return 1
 }
 
 start_pre() {
@@ -107,17 +140,40 @@ start() {
 		NIC_COMMAND[${#NIC_COMMAND[@]}]=user
 	fi
 
-	ebegin "Starting ${VM_BINARY##*/} for ${VMNAME} at VNC port${VNC}"
-	start-stop-daemon --start "${VM_BINARY}" \
+	local ss_args=( )
+	local vm_args=( -daemonize )
+
+	if [ -n "${ENABLE_SDL}" ]; then
+		ss_args[${#ss_args[@]}]=--env
+		ss_args[${#ss_args[@]}]="DISPLAY=${ENABLE_SDL}"
+		ss_args[${#ss_args[@]}]=--env
+		local user_home=`getent passwd ${DROP_USER:-root} | cut -d: -f6`
+		ss_args[${#ss_args[@]}]="XAUTHORITY=$user_home/.Xauthority"
+		vm_args[${#vm_args[@]}]=-display
+		vm_args[${#vm_args[@]}]=sdl
+	elif [ -n "$VNC" ]; then
+		vm_args[${#vm_args[@]}]=-display
+		vm_args[${#vm_args[@]}]=vnc
+		vm_args[${#vm_args[@]}]="${VNC}"
+	else
+		vm_args[${#vm_args[@]}]=-display
+		vm_args[${#vm_args[@]}]=none
+	fi
+
+	ebegin "Starting ${VM_BINARY##*/} for ${VMNAME} ${FOREGROUND:+at ${FOREGROUND}}"
+	start-stop-daemon \
+		--start "${VM_BINARY}" \
 		--pidfile ${PIDFILE} \
-		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
+		"${ss_args[@]}" \
+		-- \
+		"${vm_args[@]}" \
+		-pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
 		-drive file="${DISKIMAGE//,/,,}",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
 		"${NIC_COMMAND[@]}" \
 		${DISABLE_KVM:---enable-kvm}  \
-		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
+		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${OTHER_ARGS}
 	ret=$?
-
 	if [ "0" != "${ret}" -a -n "${QTAP}" ]; then
 		qtap-manipulate destroy ${QTAP}
 	fi
