@@ -28,7 +28,7 @@ send_command() {
 }
 
 sanity_check() {
-	if [ "${VMNAME}" != "${SVCNAME}" ]; then
+	if [ "${VMNAME}" = "${SVCNAME}" ]; then
 		eerror "You have to create an init script for each vm:"
 		eerror " ln -s vm /etc/init.d/vm.vmname"
 		return 1
