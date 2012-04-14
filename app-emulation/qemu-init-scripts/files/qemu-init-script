@@ -112,7 +112,7 @@ start() {
 		--pidfile ${PIDFILE} \
 		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
-		-drive file="$DISKIMAGE",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
+		-drive file="${DISKIMAGE//,/,,}",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
 		"${NIC_COMMAND[@]}" \
 		${DISABLE_KVM:---enable-kvm}  \
 		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
