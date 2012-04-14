@@ -35,7 +35,7 @@ sanity_check() {
 	elif [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
-   	fi
+	fi
 }
 
 start() {
@@ -46,7 +46,7 @@ start() {
 		eerror "couldn't find ${DISKIMAGE}"
 		return 1;
 	}
-	
+
 	mkdir -p $(dirname ${PIDFILE}) $(dirname ${MONITOR})
 	ebegin "creating qtap ${QTAP:-(auto allocating one)}"
 	QTAP_RET=$(qtap-manipulate create ${QTAP});
@@ -60,13 +60,13 @@ start() {
 
 	ebegin "Starting ${VMSOFTWARE-qemu} for ${VMNAME} at VNC port${VNC}"
 	start-stop-daemon --start /usr/bin/${VMSOFTWARE-qemu} \
-	--pidfile ${PIDFILE} \
-	-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
-	-runas ${DROP_USER} -name ${VMNAME} \
-	-drive file="$img",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
-	-net nic,model=${NIC_MODEL:-virtio},macaddr=${MACADDR} -net tap,ifname=${QTAP},script=no \
-	${DISABLE_KVM:---enable-kvm}  \
-	${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
+		--pidfile ${PIDFILE} \
+		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
+		-runas ${DROP_USER} -name ${VMNAME} \
+		-drive file="$img",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
+		-net nic,model=${NIC_MODEL:-virtio},macaddr=${MACADDR} -net tap,ifname=${QTAP},script=no \
+		${DISABLE_KVM:---enable-kvm}  \
+		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
 	ret=$?
 	if [ "0" != "${ret}" ]; then
 		qtap-manipulate destroy ${QTAP}
@@ -76,11 +76,11 @@ start() {
 
 reboot() {
 	if [ ${VMNAME} = ${SVCNAME} ]; then
-	eerror "You have to create an init script for each vm:"
-	eerror " ln -s vm /etc/init.d/vm.vmname"
-	return 1
+		eerror "You have to create an init script for each vm:"
+		eerror " ln -s vm /etc/init.d/vm.vmname"
+		return 1
 	fi
-	
+
 	ebegin "Rebooting ${VMNAME}"
 	send_command system_reset
 	eend $?
@@ -103,9 +103,9 @@ stop() {
 
 	ebegin "Stopping ${VMSOFTWARE-qemu} for ${VMNAME}"
 	start-stop-daemon --stop /usr/bin/${VMSOFTWARE-qemu} \
-	--user ${DROP_USER} \
-	--pidfile ${PIDFILE} \
-	--quiet
+		--user ${DROP_USER} \
+		--pidfile ${PIDFILE} \
+		--quiet
 	eend $?
 	QTAP=$(cat ${QTAP_FILE})
 	ebegin "destroying qtap ${QTAP}"
