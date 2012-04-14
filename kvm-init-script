@@ -49,7 +49,7 @@ start() {
 
 	mkdir -p $(dirname ${PIDFILE}) $(dirname ${MONITOR})
 	ebegin "creating qtap ${QTAP:-(auto allocating one)}"
-	QTAP_RET=$(qtap-manipulate create ${QTAP});
+	QTAP_RET=$(qtap-manipulate create ${QTAP} -u "${DROP_USER}");
 	if [ 0 != $? ]; then
 		eerror "failed to create qtap interface"
 		return 1

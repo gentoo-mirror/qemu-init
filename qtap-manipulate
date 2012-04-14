@@ -1,7 +1,4 @@
 #!/bin/sh
-[ -z "$1" ] || ( [ "$1" != "create" ] && [ -z "$2" ] ) && { echo "invalid usage, require create [device] || |destroy device"; exit 1; }
-
-KVM_USER=${KVM_USER:-"root"}
 
 has() {
 	local desired=$1 x
@@ -12,7 +9,7 @@ has() {
 	return 1
 }
 
-find_node() {
+find_available_node() {
 	local val=$(ifconfig -a | grep -i ^qtap | cut -d ' ' -f1)
 	local pos=0
 	while has qtap${pos} $val; do
@@ -22,9 +19,11 @@ find_node() {
 }
 
 create_node() {
-	tunctl -b -u "${KVM_USER}" -t ${1} > /dev/null || { echo "tunctl failed"; exit 2; }
-	brctl addif br0 ${1} || { echo "brctl failed"; exit 2; }
-	ifconfig ${1} up 0.0.0.0 promisc || { echo "ifconfig failed"; exit 2; }
+	local qtap="$1"
+	shift
+	tunctl -b -t "${qtap}" "$@" > /dev/null || die "tunctl failed"
+	brctl addif br0 "${qtap}" || die "brctl failed"
+	ifconfig "${qtap}" up 0.0.0.0 promisc || die "ifconfig failed"
 }
 
 destroy_node() {
@@ -32,24 +31,84 @@ destroy_node() {
 	ifconfig ${1} down || { echo "ifconfig failed";issue=1; }
 	brctl delif br0 ${1} || { echo "brctl failed";issue=2; }
 	tunctl -d ${1} > /dev/null || { echo "tunctl failed";issue=3;}
-	[ -n "${issue}" ] && exit -$(( $issue ))
+	[ -n "${issue}" ] && exit $(( $issue ))
 }
 
-command=$1
-qtap=$2
-
-if [ -z "$qtap" ]; then
-	qtap=$(find_node)
-fi
-
-if [ "$command" = "create" ]; then
-	create_node "$qtap"
-	[ "$2" != "${qtap}" ] && echo "${qtap}"
-elif [ "$command" = "destroy" ]; then
-	destroy_node "$qtap"
-else
-	echo "$command isn't a valid command; must be create or destroy";
+die() {
+	echo "$@" >&2
 	exit 1
-fi
+}
 
+usage() {
+	echo "commands available:"
+	echo "create-specific qtap-name [ -u user ] [ -g group ]"
+	echo "create [ -u user ] [ -g group ]"
+	echo "destroy qtap-name"
+	echo
+}
+
+usage_die() {
+	usage
+	die "$@"
+}
+
+create_user=
+create_group=
+
+parse_create_options() {
+	while [ $# -ne 0 ]; do
+		local x="$1"
+		case "$x" in
+			-u=*)
+				shift
+				set -- "-u" "${x#-u=}" "$@"
+				;&
+			-u)
+				shift
+				[ -z "$1" ] && die "-u requires an argument"
+				create_user="$1"
+				shift
+				;;
+			-g=*)
+				shift
+				set -- "-g" "${x#-u=}" "$@"
+				;&
+			-g)
+				shift
+				[ -z "$1" ] && die "-g requires an argument"
+				create_group="$2"
+				shift
+				;;
+			*)
+				die "unknown option $1"
+		esac
+	done
+}
+
+output_qtap=false
+case "$1" in
+	destroy)
+		shift
+		[ $# -eq 0 ] && usage_die "destroy requires a second argument"
+		[ $# -gt 1 ] && usage_die "no idea what to do with args: $@"
+		destroy_node "$1"
+		;;
+	create)
+		output_qtap=true
+		qtap=$(find_available_node)
+		[ -z "$qtap" ] && die "failed to find a qtap node to use"
+		shift
+		set -- create_specific "${qtap}" "$@"
+		;&
+	create_specific)
+		shift
+		qtap="$1"; shift
+		parse_create_options "$@"
+		create_node "$qtap"
+		$output_qtap && echo "$qtap"
+		;;
+	*)
+		usage_die "Unknown command $1"
+		;;
+esac
 exit 0
