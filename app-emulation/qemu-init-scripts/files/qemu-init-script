@@ -3,20 +3,35 @@
 # Distributed under the terms of the GNU General Public License v2
 
 # To use this, symlink a target kvm instance to this script.
-# Literally, ln -s kvm /etc/init.d/kvm.<vmname>
-# then have a config named /etc/conf.d/kvm.<vmname>
+# Literally, ln -s qemu /etc/init.d/<vm-type>.<vmname>
+# then have a config named /etc/conf.d/<vm-type>.<vmname>
+#
+# Allowed vm-types are currently qemu and kvm.
 
 
 VMNAME=${SVCNAME#*.}
-PIDFILE=/var/run/vm/${VMNAME}.pid
-MONITOR=/var/run/vm/${VMNAME}.monitor
-QTAP_FILE=/var/run/vm/${VMNAME}.qtap
+VMTYPE=${SVCNAME%.*}
+VM_BINARY=
+PIDFILE=/var/run/vm/${SVCNAME}.pid
+MONITOR=/var/run/vm/${SVCNAME}.monitor
+QTAP_FILE=/var/run/vm/${SVCNAME}.qtap
 
-# Default to qemu-kvm in the absense of a setting, failing back
-# to kvm if no binary is found, finally, back to qemu.
-[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p qemu-kvm)
-[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p kvm)
-[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p qemu)
+discern_vm_binary() {
+	case "$VMTYPE" in
+		kvm)
+			VM_BINARY=`type -p qemu-kvm`
+			[ -z "$VM_BINARY" ] && VM_BINARY=`type -p kvm`
+			;;
+		qemu)
+			VM_BINARY=`type -p qemu`
+			;;
+		*)
+			eerror "Failed to discern the binary for $VMTYPE"
+			;;
+	esac
+	return 0
+}
+
 
 DROP_USER=${DROP_USER:-nobody}
 MEMORY=${MEMORY:-512M}
@@ -45,6 +60,7 @@ sanity_check() {
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
 	fi
+	discern_vm_binary
 }
 
 start() {
@@ -70,8 +86,8 @@ start() {
 	echo "${QTAP}" > ${QTAP_FILE}
 	eend $?
 
-	ebegin "Starting ${VMSOFTWARE##*/} for ${VMNAME} at VNC port${VNC}"
-	start-stop-daemon --start "${VMSOFTWARE}" \
+	ebegin "Starting ${VM_BINARY##*/} for ${VMNAME} at VNC port${VNC}"
+	start-stop-daemon --start "${VM_BINARY}" \
 		--pidfile ${PIDFILE} \
 		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
@@ -125,8 +141,8 @@ stop() {
 		eend $ret
 	fi
 
-	ebegin "Stopping ${VMSOFTWARE##*/} for ${VMNAME}"
-	start-stop-daemon --stop "${VMSOFTWARE}" \
+	ebegin "Stopping ${VM_BINARY##*/} for ${VMNAME}"
+	start-stop-daemon --stop "${VM_BINARY}" \
 		--user "${DROP_USER}" \
 		--pidfile "${PIDFILE}" \
 		--quiet

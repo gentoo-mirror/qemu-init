@@ -13,7 +13,8 @@ KEYWORDS="amd64 x86"
 PDEPEND="|| ( app-emulation/qemu-kvm app-emulation/qemu )"
 
 src_install() {
-	newinitd "${FILESDIR}"/kvm-init-script kvm
-	newconfd "${FILESDIR}"/kvm-conf.example kvm.conf.example
+	newinitd "${FILESDIR}"/qemu-init-script qemu
+	newconfd "${FILESDIR}"/qemu-conf.example qemu.conf.example
 	newsbin "${FILESDIR}"/qtap-manipulate qtap-manipulate
+	dosym qemu /etc/init.d/kvm
 }
