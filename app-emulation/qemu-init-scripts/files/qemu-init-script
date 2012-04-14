@@ -42,7 +42,17 @@ export KVM_USER=${KVM_USER:-"root"}
 extra_commands="reboot"
 
 depend() {
-	need net.br0
+	if [ "$VMNAME" = "$SVCNAME" ]; then
+		return 0
+	fi
+
+	sanity_check || return 1
+
+	case "$NIC_TYPE" in
+		br)
+			need ${NIC_NET_DEPS-net.br0}
+			;;
+	esac
 }
 
 send_command() {
@@ -57,12 +67,14 @@ sanity_check() {
 		eerror " ln -s vm /etc/init.d/vm.vmname"
 		return 1
 	fi
+
 	DISKIMAGE=$(readlink -f "${DISKIMAGE}")
 	if [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
 	fi
 	discern_vm_binary
+	NIC_TYPE=${NIC_TYPE:-nat}
 }
 
 start_pre() {
@@ -70,22 +82,30 @@ start_pre() {
 		"${MONITOR%/*}"
 }
 
-
 start() {
 	sanity_check || return 1
 
-	ebegin "creating qtap ${QTAP:-(auto allocating one)}"
-	if [ -n "$QTAP" ]; then
-		qtap-manipulate create_specific "${QTAP}" -u "${DROP_USER}"
-	else
-		QTAP=$(qtap-manipulate create -u "${DROP_USER}")
-		if [ 0 != $? ]; then
-			eerror "failed to create qtap interface"
-			return 1
+	local NIC_COMMAND=(	-net "nic,model=${NIC_MODEL:-virtio},macaddr=${MACADDR}" -net )
+
+	if [ "${NIC_TYPE}" = "br" ]; then
+		ebegin "creating qtap ${QTAP:-(auto allocating one)}"
+		if [ -n "$QTAP" ]; then
+			qtap-manipulate create_specific "${QTAP}" -u "${DROP_USER}"
+		else
+			QTAP=$(qtap-manipulate create -u "${DROP_USER}")
+			if [ 0 != $? ]; then
+				eerror "failed to create qtap interface"
+				return 1
+			fi
 		fi
+		echo "${QTAP}" > ${QTAP_FILE}
+		eend $?
+		NIC_COMMAND[${#NIC_COMMAND[@]}]="tap,ifname=${QTAP},script=no"
+	elif [ "${NIC_TYPE}" = "none" ]; then
+		NIC_COMMAND=( -net none )
+	else
+		NIC_COMMAND[${#NIC_COMMAND[@]}]=user
 	fi
-	echo "${QTAP}" > ${QTAP_FILE}
-	eend $?
 
 	ebegin "Starting ${VM_BINARY##*/} for ${VMNAME} at VNC port${VNC}"
 	start-stop-daemon --start "${VM_BINARY}" \
@@ -93,13 +113,15 @@ start() {
 		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
 		-drive file="$DISKIMAGE",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
-		-net nic,model=${NIC_MODEL:-virtio},macaddr=${MACADDR} -net tap,ifname=${QTAP},script=no \
+		"${NIC_COMMAND[@]}" \
 		${DISABLE_KVM:---enable-kvm}  \
 		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
 	ret=$?
-	if [ "0" != "${ret}" ]; then
+
+	if [ "0" != "${ret}" -a -n "${QTAP}" ]; then
 		qtap-manipulate destroy ${QTAP}
 	fi
+
 	eend ${ret}
 }
 
