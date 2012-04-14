@@ -7,8 +7,12 @@ PIDFILE=/var/run/vm/${VMNAME}.pid
 MONITOR=/var/run/vm/${VMNAME}.monitor
 QTAP_FILE=/var/run/vm/${VMNAME}.qtap
 
-# modify this
-VMSOFTWARE=${VMSOFTWARE:-qemu-kvm}
+# Default to qemu-kvm in the absense of a setting, failing back
+# to kvm if no binary is found, finally, back to qemu.
+[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p qemu-kvm)
+[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p kvm)
+[ -z "$VMSOFTWARE" ] && VMSOFTWARE=$(type -p qemu)
+
 DROP_USER=${DROP_USER:-nobody}
 MEMORY=${MEMORY:-512M}
 TIMEOUT=${TIMEOUT:-300}
@@ -23,8 +27,8 @@ depend() {
 
 send_command() {
 	local command="socat -u - UNIX-CONNECT:${MONITOR}"
-	which nc6 2> /dev/null > /dev/null && command="nc6 -U ${MONITOR} --send-only"
-	echo "$@" | ${command} >/dev/null 2>&1
+	type -p nc6 > /dev/null && command="nc6 -U ${MONITOR} --send-only"
+	echo "$@" | ${command} > /dev/null 2>&1
 }
 
 sanity_check() {
@@ -47,19 +51,22 @@ start() {
 		return 1;
 	}
 
-	mkdir -p $(dirname ${PIDFILE}) $(dirname ${MONITOR})
+	mkdir -p "${PIDFILE%/*}" "${MONITOR%/*}"
 	ebegin "creating qtap ${QTAP:-(auto allocating one)}"
-	QTAP_RET=$(qtap-manipulate create ${QTAP} -u "${DROP_USER}");
-	if [ 0 != $? ]; then
-		eerror "failed to create qtap interface"
-		return 1
+	if [ -n "$QTAP" ]; then
+		qtap-manipulate create_specific "${QTAP}" -u "${DROP_USER}"
+	else
+		QTAP=$(qtap-manipulate create -u "${DROP_USER}")
+		if [ 0 != $? ]; then
+			eerror "failed to create qtap interface"
+			return 1
+		fi
 	fi
-	QTAP=${QTAP:-${QTAP_RET}}
 	echo "${QTAP}" > ${QTAP_FILE}
 	eend $?
 
-	ebegin "Starting ${VMSOFTWARE-qemu} for ${VMNAME} at VNC port${VNC}"
-	start-stop-daemon --start /usr/bin/${VMSOFTWARE-qemu} \
+	ebegin "Starting ${VMSOFTWARE##*/} for ${VMNAME} at VNC port${VNC}"
+	start-stop-daemon --start "${VMSOFTWARE}" \
 		--pidfile ${PIDFILE} \
 		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
@@ -94,21 +101,36 @@ stop() {
 	eend $?
 
 	ebegin "waiting up to ${TIMEOUT:-60} seconds for it to die"
-	ret=1
-	for x in $(seq 0 ${TIMEOUT:-60}); do
-		kill -0 $(cat $PIDFILE) 2>&1 > /dev/null || { ret=0; break; }
-		sleep 1s
-	done
-	eend ${ret}
+	local pid
+	[ -s "${PIDFILE}" ] && pid=$(cat "${PIDFILE}")
+	if [ -z "$pid" ]; then
+		eerror "Couldn't find stored pid at '$PIDFILE'; user will have to manually kill kvm"
+		eerror "Will attempt to destroy qtap despite."
+		eend 1
+	else
+		local ret=1
+		for x in $(seq 0 ${TIMEOUT:-60}); do
+			if kill -0 "${pid}" > /dev/null 2>&1; then
+				sleep 1s
+				continue
+			fi
+			ret=0
+			break
+		done
+		eend $ret
+	fi
 
-	ebegin "Stopping ${VMSOFTWARE-qemu} for ${VMNAME}"
-	start-stop-daemon --stop /usr/bin/${VMSOFTWARE-qemu} \
-		--user ${DROP_USER} \
-		--pidfile ${PIDFILE} \
+	ebegin "Stopping ${VMSOFTWARE##*/} for ${VMNAME}"
+	start-stop-daemon --stop "${VMSOFTWARE}" \
+		--user "${DROP_USER}" \
+		--pidfile "${PIDFILE}" \
 		--quiet
 	eend $?
-	QTAP=$(cat ${QTAP_FILE})
-	ebegin "destroying qtap ${QTAP}"
-	qtap-manipulate destroy ${QTAP}
-	eend $?
+	local qtap
+	[ -s "${QTAP_FILE}" ] && qtap=$(cat "${QTAP_FILE}")
+	if [ -n "$qtap" ]; then
+		ebegin "destroying qtap ${qtap}"
+		qtap-manipulate destroy ${qtap}
+		eend $?
+	fi
 }
