@@ -10,7 +10,10 @@ LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="amd64 x86"
 
-PDEPEND="|| ( app-emulation/qemu-kvm app-emulation/qemu )"
+RPDEPEND="
+	|| ( app-emulation/qemu-kvm app-emulation/qemu )
+	|| ( net-misc/socat net-analyzer/netcat6 )"
+	"
 
 src_install() {
 	newinitd "${FILESDIR}"/qemu-init-script qemu
