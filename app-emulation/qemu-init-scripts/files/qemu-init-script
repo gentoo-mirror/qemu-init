@@ -56,23 +56,24 @@ sanity_check() {
 		eerror "You have to create an init script for each vm:"
 		eerror " ln -s vm /etc/init.d/vm.vmname"
 		return 1
-	elif [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
+	fi
+	DISKIMAGE=$(readlink -f "${DISKIMAGE}")
+	if [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
 	fi
 	discern_vm_binary
 }
 
+start_pre() {
+	checkpath -d --owner root:root --mode 0644 "${PIDFILE%/*}" \
+		"${MONITOR%/*}"
+}
+
+
 start() {
 	sanity_check || return 1
 
-	img=$(readlink -f "${DISKIMAGE}")
-	[ -z "$img" ] && {
-		eerror "couldn't find ${DISKIMAGE}"
-		return 1;
-	}
-
-	mkdir -p "${PIDFILE%/*}" "${MONITOR%/*}"
 	ebegin "creating qtap ${QTAP:-(auto allocating one)}"
 	if [ -n "$QTAP" ]; then
 		qtap-manipulate create_specific "${QTAP}" -u "${DROP_USER}"
@@ -91,7 +92,7 @@ start() {
 		--pidfile ${PIDFILE} \
 		-- -daemonize -pidfile ${PIDFILE} -monitor unix:${MONITOR},server,nowait \
 		-runas ${DROP_USER} -name ${VMNAME} \
-		-drive file="$img",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
+		-drive file="$DISKIMAGE",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none} \
 		-net nic,model=${NIC_MODEL:-virtio},macaddr=${MACADDR} -net tap,ifname=${QTAP},script=no \
 		${DISABLE_KVM:---enable-kvm}  \
 		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${VNC:+-vnc ${VNC}} ${OTHER_ARGS}
