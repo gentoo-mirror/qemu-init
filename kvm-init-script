@@ -13,8 +13,9 @@ DROP_USER=${DROP_USER:-nobody}
 MEMORY=${MEMORY:-512M}
 TIMEOUT=${TIMEOUT:-300}
 SMP=${SMP:-1}
+export KVM_USER=${KVM_USER:-"root"}
 
-opts="reboot"
+extra_commands="reboot"
 
 depend() {
 	need net.br0
@@ -22,16 +23,16 @@ depend() {
 
 send_command() {
 	local command="socat -u - UNIX-CONNECT:${MONITOR}"
-	which nc6 2>&1 > /dev/null && command="nc6 -U ${MONITOR} --send-only"
+	which nc6 2> /dev/null > /dev/null && command="nc6 -U ${MONITOR} --send-only"
 	echo "$@" | ${command} >/dev/null 2>&1
 }
 
 sanity_check() {
-	if [ "${VMNAME}" = "${SVCNAME}" ]; then
+	if [ "${VMNAME}" != "${SVCNAME}" ]; then
 		eerror "You have to create an init script for each vm:"
 		eerror " ln -s vm /etc/init.d/vm.vmname"
 		return 1
-	elif [ ! -f "${DISKIMAGE}" ]; then
+	elif [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
 		eerror "couldn't find \$DISKIMAGE '$DISKIMAGE'"
 		return 1;
    	fi

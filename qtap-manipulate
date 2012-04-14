@@ -1,7 +1,7 @@
 #!/bin/sh
 [ -z "$1" ] || ( [ "$1" != "create" ] && [ -z "$2" ] ) && { echo "invalid usage, require create [device] || |destroy device"; exit 1; }
 
-#KVM_USER="kvm-envs"
+KVM_USER=${KVM_USER:-"root"}
 
 has() {
 	local desired=$1 x
