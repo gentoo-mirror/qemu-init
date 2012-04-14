@@ -48,7 +48,7 @@ sanity_check() {
 }
 
 start() {
-	sanity_check
+	sanity_check || return 1
 
 	img=$(readlink -f "${DISKIMAGE}")
 	[ -z "$img" ] && {
@@ -99,7 +99,7 @@ reboot() {
 }
 
 stop() {
-	sanity_check
+	sanity_check || return 1
 
 	ebegin "Powering off ${VMNAME}"
 	send_command system_powerdown
