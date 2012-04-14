@@ -2,6 +2,11 @@
 # Copyright 2009 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
+# To use this, symlink a target kvm instance to this script.
+# Literally, ln -s kvm /etc/init.d/kvm.<vmname>
+# then have a config named /etc/conf.d/kvm.<vmname>
+
+
 VMNAME=${SVCNAME#*.}
 PIDFILE=/var/run/vm/${VMNAME}.pid
 MONITOR=/var/run/vm/${VMNAME}.monitor
