@@ -11,6 +11,8 @@ has() {
 
 find_available_node() {
 	local val=$(ifconfig -a | grep -i ^qtap | cut -d ' ' -f1)
+	# Strip off ifconfig appended ':'
+	val="${val%:}"
 	local pos=0
 	while has qtap${pos} $val; do
 		pos=$(( $pos + 1 ))
