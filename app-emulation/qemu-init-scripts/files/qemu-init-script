@@ -161,7 +161,7 @@ start() {
 	fi
 
 	ebegin "Starting ${VM_BINARY##*/} for ${VMNAME} ${FOREGROUND:+at ${FOREGROUND}}"
-	start-stop-daemon \
+	set -- start-stop-daemon \
 		--start "${VM_BINARY}" \
 		--pidfile ${PIDFILE} \
 		"${ss_args[@]}" \
@@ -173,6 +173,8 @@ start() {
 		"${NIC_COMMAND[@]}" \
 		${DISABLE_KVM:---enable-kvm}  \
 		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${OTHER_ARGS}
+	einfo "invoking ${@}"
+	"${@}"
 	ret=$?
 	if [ "0" != "${ret}" -a -n "${QTAP}" ]; then
 		qtap-manipulate destroy ${QTAP}
