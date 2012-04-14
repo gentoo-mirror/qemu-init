@@ -1,7 +1,7 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EGIT_REPO_URI="git://pkgcore.org/kvm-tools"
+EGIT_REPO_URI="git://git.overlays.gentoo.org/proj/kvm-tools.git"
 inherit git-2
 
 DESCRIPTION="Kvm and qemu init scripts"
