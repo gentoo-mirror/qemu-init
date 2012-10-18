@@ -1,5 +1,5 @@
 #!/sbin/runscript
-# Copyright 2009 Gentoo Foundation
+# Copyright 2009-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
 # To use this, symlink a target kvm instance to this script.
@@ -153,8 +153,7 @@ start() {
 		vm_args[${#vm_args[@]}]=sdl
 	elif [ -n "$VNC" ]; then
 		vm_args[${#vm_args[@]}]=-display
-		vm_args[${#vm_args[@]}]=vnc
-		vm_args[${#vm_args[@]}]="${VNC}"
+		vm_args[${#vm_args[@]}]="vnc=${VNC}"
 	else
 		vm_args[${#vm_args[@]}]=-display
 		vm_args[${#vm_args[@]}]=none
