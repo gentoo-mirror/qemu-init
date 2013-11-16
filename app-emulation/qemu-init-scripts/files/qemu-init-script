@@ -222,11 +222,15 @@ stop() {
 	fi
 
 	ebegin "Stopping ${VM_BINARY##*/} for ${VMNAME}"
-	start-stop-daemon --stop "${VM_BINARY}" \
-		--user "${DROP_USER}" \
-		--pidfile "${PIDFILE}" \
-		--quiet
-	eend $?
+	if kill -0 "${pid}" > /dev/null 2>&1; then
+		start-stop-daemon --stop "${VM_BINARY}" \
+			--user "${DROP_USER}" \
+			--pidfile "${PIDFILE}" \
+			--quiet
+		eend $?
+	else
+		eend 0  # no need to kill process if it is dead :P
+	fi
 	local qtap
 	[ -s "${QTAP_FILE}" ] && qtap=$(cat "${QTAP_FILE}")
 	if [ -n "$qtap" ]; then
