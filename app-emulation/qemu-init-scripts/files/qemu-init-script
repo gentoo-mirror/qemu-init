@@ -1,13 +1,17 @@
 #!/sbin/runscript
-# Copyright 2009-2012 Gentoo Foundation
+# Copyright 2009-2013 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-# To use this, symlink a target kvm instance to this script.
-# Literally, ln -s qemu /etc/init.d/<vm-type>.<vmname>
-# then have a config named /etc/conf.d/<vm-type>.<vmname>
+# You are not supposed to run this script directly. Create a symlink
+# for the qemu instance you want to run as well as a copy of the
+# configuration file and modify it appropriately like so...
 #
-# Allowed vm-types are currently qemu and kvm.
-
+#   ln -s qemu /etc/init.d/kvm.myserver
+#   cp /etc/conf.d/qemu /etc/conf.d/kvm.myserver
+#   nano /etc/conf.d/kvm.myserver
+#
+# where 'kvm' is the virtual machine type ('qemu' and 'kvm' allowed)
+# and 'myserver' is the name of your instance.
 
 VMNAME=${SVCNAME#*.}
 VMTYPE=${SVCNAME%.*}
@@ -92,12 +96,24 @@ send_command() {
 	echo "$@" | ${command} > /dev/null 2>&1
 }
 
-sanity_check() {
+symlink_check() {
 	if [ "${VMNAME}" = "${SVCNAME}" ]; then
-		eerror "You have to create an init script for each vm:"
-		eerror " ln -s vm /etc/init.d/vm.vmname"
+		eerror "You are not supposed to run this script directly. Create a symlink"
+		eerror "for the qemu instance you want to run as well as a copy of the"
+		eerror "configuration file and modify it appropriately like so..."
+		eerror
+		eerror "  ln -s qemu /etc/init.d/kvm.myserver"
+		eerror "  cp /etc/conf.d/qemu /etc/conf.d/kvm.myserver"
+		eerror "  `basename "${EDITOR:-nano}"` /etc/conf.d/kvm.myserver"
+		eerror
+		eerror "where 'kvm' is the virtual machine type ('qemu' and 'kvm' allowed)"
+		eerror "and 'myserver' is the name of your instance."
 		return 1
 	fi
+}
+
+sanity_check() {
+	symlink_check || return 1
 
 	DISKIMAGE=$(readlink -f "${DISKIMAGE}")
 	if [ ! -f "${DISKIMAGE}" -a ! -b "${DISKIMAGE}" ]; then
@@ -183,11 +199,7 @@ start() {
 }
 
 reboot() {
-	if [ ${VMNAME} = ${SVCNAME} ]; then
-		eerror "You have to create an init script for each vm:"
-		eerror " ln -s vm /etc/init.d/vm.vmname"
-		return 1
-	fi
+	symlink_check || return 1
 
 	ebegin "Rebooting ${VMNAME}"
 	send_command system_reset
