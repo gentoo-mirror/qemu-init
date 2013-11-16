@@ -12,9 +12,9 @@
 VMNAME=${SVCNAME#*.}
 VMTYPE=${SVCNAME%.*}
 VM_BINARY=
-PIDFILE=/var/run/vm/${SVCNAME}.pid
-MONITOR=/var/run/vm/${SVCNAME}.monitor
-QTAP_FILE=/var/run/vm/${SVCNAME}.qtap
+PIDFILE=/run/vm/${SVCNAME}.pid
+MONITOR=/run/vm/${SVCNAME}.monitor
+QTAP_FILE=/run/vm/${SVCNAME}.qtap
 
 ENABLE_SDL=
 
