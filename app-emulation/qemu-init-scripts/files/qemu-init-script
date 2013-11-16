@@ -36,12 +36,12 @@ discern_vm_binary() {
 
 discern_foreground() {
 	if [ -n "$VNC" ]; then
-		ewarn "VNC option is going away; set FOREGROUND=vnc${VNC} instead"
+		ewarn "VNC option is going away; set FOREGROUND=\"vnc=${VNC}\" instead"
 		FOREGROUND="vnc=${VNC}"
 	fi
 	case "${FOREGROUND:-none}" in
 		vnc*)
-			VNC=${VNC#*=}
+			VNC=${FOREGROUND#*=}
 			if [ -z "$VNC" ]; then
 				eerror "FOREGROUND vnc is incorrectly set; must specify an address (:1 for example)"
 				return 1

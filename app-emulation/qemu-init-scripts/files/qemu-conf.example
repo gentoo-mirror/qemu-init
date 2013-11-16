@@ -3,7 +3,7 @@ MACADDR=52:54:1C:10:34:35
 DISKIMAGE=/mnt/kvm/gentoo64.qcow2
 MEMORY=1G
 SMP=4
-VNC=:24
+FOREGROUND="vnc=:24"
 NIC_MODEL=virtio
 DRIVE_MODEL=virtio
 #OTHER_ARGS="-boot order=dc -cdrom /mnt/archive/gentoo/install-amd64-minimal-20100408.iso"
