@@ -48,7 +48,7 @@ DISKIMAGE=/mnt/kvm/gentoo64.qcow2
 
 # Drive format.
 #
-# See qemu documentation,
+# See qemu documentation.
 #
 # Defaults to autodetection.
 #
