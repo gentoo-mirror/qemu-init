@@ -54,6 +54,18 @@ DISKIMAGE=/mnt/kvm/gentoo64.qcow2
 #
 #DRIVE_FORMAT=
 
+# Drive cache type.
+#
+# See qemu documentation.
+#
+# Note for zfs filesystems
+#     ensure you have set zfs
+#     # zfs set primarycache=all ${tank}
+#     set DRIVE_CACHE=writeback
+#
+# Defaults to none.
+#
+#DRIVE_CACHE=
 
 ##  General settings
 
