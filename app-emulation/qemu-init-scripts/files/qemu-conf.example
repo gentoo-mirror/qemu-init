@@ -105,4 +105,13 @@ FOREGROUND="vnc=:24"
 #TIMEOUT=60
 
 # Any other qemu options you may want to use
+# live cd example
 OTHER_ARGS="-boot order=cd -cdrom /mnt/archive/gentoo.iso"
+
+# live-usb image install example, with optional boot menu, adjust the format type as needed
+# Note, initial run with an empty primary drive, initial boot fails,
+# reboot it (send Cntl-Alt-delete), use the F12 option and select the second drive, after installation
+# the primary drive should boot automatically
+#OTHER_ARGS="-drive if=virtio,file=/path/to/usb.img,format=raw,cache=writeback,media=disk -boot menu=on"
+
+
