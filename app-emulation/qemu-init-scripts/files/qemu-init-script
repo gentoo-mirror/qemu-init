@@ -19,17 +19,17 @@ VM_BINARY=
 PIDFILE=/run/vm/${SVCNAME}.pid
 MONITOR=/run/vm/${SVCNAME}.monitor
 QTAP_FILE=/run/vm/${SVCNAME}.qtap
-
 ENABLE_SDL=
 
 discern_vm_binary() {
 	case "$VMTYPE" in
 		kvm)
-			VM_BINARY=`type -p qemu-kvm`
-			[ -z "$VM_BINARY" ] && VM_BINARY=`type -p kvm`
+			VM_BINARY=$(which "qemu-system-${QEMU_TYPE}")
+			[ -z "$VM_BINARY" ] && eerror "Failed to find the binary for qemu-system-${QEMU_TYPE}"
 			;;
 		qemu)
-			VM_BINARY=`type -p qemu`
+			VM_BINARY=$(which "qemu-${QEMU_TYPE}")
+			[ -z "$VM_BINARY" ] && eerror "Failed to find the binary for qemu-${QEMU_TYPE}"
 			;;
 		*)
 			eerror "Failed to discern the binary for $VMTYPE"

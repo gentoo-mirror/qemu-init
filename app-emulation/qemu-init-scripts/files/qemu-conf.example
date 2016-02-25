@@ -3,6 +3,18 @@
 
 # DO NOT MODIFY THIS FILE DIRECTLY! CREATE A COPY AND MODIFY THAT INSTEAD!
 
+# VMTYPE is auto determined via the file prefix
+# ie: kvm.myserver would yield VMTYPE=kvm
+# the two types allowed are: qemu, kvm
+
+# Machine type
+#
+# The specific qemu binary type
+# eg. for VMTYPE=kvm, then /usr/bin/qemu-system-${QEMU_TYPE}
+# eg. for VMTYPE=qemu, then /usr/bin/qemu-${QEMU_TYPE}
+# QEMU_TYPE="x86_64"
+QEMU_TYPE="x86_64"
+
 ## Network settings
 
 # MAC address
