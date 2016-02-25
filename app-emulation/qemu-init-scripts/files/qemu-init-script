@@ -186,8 +186,10 @@ start() {
 		-runas ${DROP_USER} -name ${VMNAME} \
 		-drive file="${DISKIMAGE//,/,,}",if=${DRIVE_MODEL:-virtio},cache=${DRIVE_CACHE:-none}${DRIVE_FORMAT:+,format=${DRIVE_FORMAT}} \
 		"${NIC_COMMAND[@]}" \
-		${DISABLE_KVM:---enable-kvm}  \
-		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} ${OTHER_ARGS}
+		${ENABLE_KVM:+--enable-kvm} ${CPU:+-cpu ${CPU}} \
+		${MACHINE:+-M ${MACHINE}} \
+		${MEMORY:+-m ${MEMORY}} ${SMP:+-smp ${SMP}} \
+		${OTHER_ARGS}
 	einfo "invoking ${@}"
 	"${@}"
 	ret=$?

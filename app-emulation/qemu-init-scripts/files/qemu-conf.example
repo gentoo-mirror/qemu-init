@@ -81,6 +81,24 @@ DISKIMAGE=/mnt/kvm/gentoo64.qcow2
 
 ##  General settings
 
+# The machine type to use
+# see qemu help
+# default is Standard PC (i440FX + PIIX, 1996)
+#
+#MACHINE="q35"
+
+# Enable/diasble kvm
+#
+# null value == disabled
+# non null value == enabled
+#
+ENABLE_KVM=1
+
+# cpu option
+# see qemu help
+#
+#CPU=host
+
 # RAM memory allocated for the virtual machine
 #
 # Defaults to 512M
