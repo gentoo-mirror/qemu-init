@@ -215,7 +215,7 @@ stop() {
 	send_command system_powerdown
 	eend $?
 
-	ebegin "waiting up to ${TIMEOUT:-60} seconds for it to die"
+	ebegin "waiting up to ${TIMEOUT} seconds for it to die"
 	local pid
 	[ -s "${PIDFILE}" ] && pid=$(cat "${PIDFILE}")
 	if [ -z "$pid" ]; then
@@ -224,7 +224,7 @@ stop() {
 		eend 1
 	else
 		local ret=1
-		for x in $(seq 0 ${TIMEOUT:-60}); do
+		for x in $(seq 0 ${TIMEOUT}); do
 			if kill -0 "${pid}" > /dev/null 2>&1; then
 				sleep 1s
 				continue
