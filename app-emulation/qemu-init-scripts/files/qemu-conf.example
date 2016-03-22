@@ -3,6 +3,18 @@
 
 # DO NOT MODIFY THIS FILE DIRECTLY! CREATE A COPY AND MODIFY THAT INSTEAD!
 
+# VMTYPE is auto determined via the file prefix
+# ie: kvm.myserver would yield VMTYPE=kvm
+# the two types allowed are: qemu, kvm
+
+# Machine type
+#
+# The specific qemu binary type
+# eg. for VMTYPE=kvm, then /usr/bin/qemu-system-${QEMU_TYPE}
+# eg. for VMTYPE=qemu, then /usr/bin/qemu-${QEMU_TYPE}
+# QEMU_TYPE="x86_64"
+QEMU_TYPE="x86_64"
+
 ## Network settings
 
 # MAC address
@@ -54,8 +66,38 @@ DISKIMAGE=/mnt/kvm/gentoo64.qcow2
 #
 #DRIVE_FORMAT=
 
+# Drive cache type.
+#
+# See qemu documentation.
+#
+# Note for zfs filesystems
+#     ensure you have set zfs
+#     # zfs set primarycache=all ${tank}
+#     set DRIVE_CACHE=writeback
+#
+# Defaults to none.
+#
+#DRIVE_CACHE=
 
 ##  General settings
+
+# The machine type to use
+# see qemu help
+# default is Standard PC (i440FX + PIIX, 1996)
+#
+#MACHINE="q35"
+
+# Enable/diasble kvm
+#
+# null value == disabled
+# non null value == enabled
+#
+ENABLE_KVM=1
+
+# cpu option
+# see qemu help
+#
+#CPU=host
 
 # RAM memory allocated for the virtual machine
 #
@@ -93,4 +135,13 @@ FOREGROUND="vnc=:24"
 #TIMEOUT=60
 
 # Any other qemu options you may want to use
+# live cd example
 OTHER_ARGS="-boot order=cd -cdrom /mnt/archive/gentoo.iso"
+
+# live-usb image install example, with optional boot menu, adjust the format type as needed
+# Note, initial run with an empty primary drive, initial boot fails,
+# reboot it (send Cntl-Alt-delete), use the F12 option and select the second drive, after installation
+# the primary drive should boot automatically
+#OTHER_ARGS="-drive if=virtio,file=/path/to/usb.img,format=raw,cache=writeback,media=disk -boot menu=on"
+
+

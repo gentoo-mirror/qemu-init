@@ -12,9 +12,9 @@ has() {
 }
 
 find_available_node() {
-	local val=$(ifconfig -a | grep -i ^qtap | cut -d: -f1)
+	local val=$(ip addr | grep -i '.*: qtap' | cut -d: -f2)
 	local pos=0
-	while has qtap${pos} $val; do
+	while has qtap${pos} ${val##*()}; do
 		pos=$(( $pos + 1 ))
 	done
 	echo qtap${pos}
@@ -25,12 +25,13 @@ create_node() {
 	shift
 	tunctl -b -t "${qtap}" "$@" > /dev/null || die "tunctl failed"
 	brctl addif br0 "${qtap}" || die "brctl failed"
-	ifconfig "${qtap}" up 0.0.0.0 promisc || die "ifconfig failed"
+	ip link set "${qtap}" up || die "ip link set ${qtap} failed"
+	ip link set "${qtap}" promisc on || die "ip link set ${qtap} promiscuos mode failed"
 }
 
 destroy_node() {
 	issue=
-	ifconfig ${1} down || { echo "ifconfig failed";issue=1; }
+	ip link set ${1} down || { echo "ip link set ${1} down failed";issue=1; }
 	brctl delif br0 ${1} || { echo "brctl failed";issue=2; }
 	tunctl -d ${1} > /dev/null || { echo "tunctl failed";issue=3;}
 	[ -n "${issue}" ] && exit $(( $issue ))
