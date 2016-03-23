@@ -13,6 +13,8 @@
 # where 'kvm' is the virtual machine type ('qemu' and 'kvm' allowed)
 # and 'myserver' is the name of your instance.
 
+VERSION="0.3.0"
+
 VMNAME=${SVCNAME#*.}
 VMTYPE=${SVCNAME%.*}
 VM_BINARY=
@@ -74,7 +76,7 @@ TIMEOUT=${TIMEOUT:-300}
 SMP=${SMP:-1}
 export KVM_USER=${KVM_USER:-"root"}
 
-extra_commands="reboot"
+extra_commands="reboot version"
 
 depend() {
 	if [ "$VMNAME" = "$SVCNAME" ]; then
@@ -253,3 +255,8 @@ stop() {
 		eend $?
 	fi
 }
+
+version() {
+	echo "qemu-init-scripts version: ${VERSION}"
+}
+
