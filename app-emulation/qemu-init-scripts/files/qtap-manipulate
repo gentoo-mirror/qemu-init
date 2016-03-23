@@ -2,6 +2,8 @@
 # Copyright 1999-2012 Gentoo Foundation
 # Distributed under the terms of the GNU General Public Licens
 
+VERSION="0.3.0"
+
 has() {
 	local desired=$1 x
 	shift
@@ -47,12 +49,17 @@ usage() {
 	echo "create-specific qtap-name [ -u user ] [ -g group ]"
 	echo "create [ -u user ] [ -g group ]"
 	echo "destroy qtap-name"
+	echo "version"
 	echo
 }
 
 usage_die() {
 	usage
 	die "$@"
+}
+
+show_version() {
+	echo "qtap-manipulate version: ${VERSION}"
 }
 
 create_user=
@@ -110,8 +117,12 @@ case "$1" in
 		create_node "$qtap"
 		$output_qtap && echo "$qtap"
 		;;
+	version)
+		show_version
+		;;
 	*)
 		usage_die "Unknown command $1"
 		;;
 esac
 exit 0
+
